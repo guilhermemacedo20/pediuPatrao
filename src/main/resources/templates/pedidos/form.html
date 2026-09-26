@@ -1,0 +1,13 @@
+<div th:fragment="content">
+    <form th:action="@{/pedidos/salvar}" th:object="${pedido}" method="post">
+        <select th:field="*{clienteId}">
+            <option th:each="c : ${clientes}" th:value="${c.id}" th:text="${c.nome}"></option>
+        </select>
+        <select th:field="*{itens[0].id}">
+            <option th:each="p : ${produtos}" th:value="${p.id}"
+                    th:text="${p.nome + ' - R$ ' + p.preco}"></option>
+        </select>
+        <input type="number" min="1" required th:field="*{itens[0].quantidade}"/>
+        <button type="submit">Registrar pedido</button>
+    </form>
+</div>
