@@ -7,6 +7,7 @@ import com.umc.pediupatrao.entity.Pedido;
 import com.umc.pediupatrao.entity.PedidoItem;
 import com.umc.pediupatrao.entity.Produto;
 import com.umc.pediupatrao.entity.Usuario;
+import com.umc.pediupatrao.service.AuditoriaService;
 import com.umc.pediupatrao.service.ClienteService;
 import com.umc.pediupatrao.service.PedidoService;
 import com.umc.pediupatrao.service.ProdutoService;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
@@ -40,6 +42,9 @@ public class HomeController {
 
     @Autowired
     private UsuarioService usuarioService;
+
+    @Autowired
+    private AuditoriaService auditoriaService;
 
     @GetMapping("/login")
     public String login() {
@@ -159,6 +164,36 @@ public class HomeController {
         return "redirect:/pedidos";
     }
 
+    @PostMapping("/pedidos/{id}/status")
+    @PreAuthorize("hasAnyRole('GERENTE','ATENDENTE')")
+    public String atualizarStatusPedido(@PathVariable String id, @RequestParam String status,
+            RedirectAttributes redirectAttributes) {
+        pedidoService.atualizarStatus(id, status);
+        redirectAttributes.addFlashAttribute("sucesso", "Status atualizado.");
+        return "redirect:/pedidos";
+    }
+
+    @PostMapping("/pedidos/{id}/desconto")
+    @PreAuthorize("hasRole('GERENTE')")
+    public String aplicarDesconto(@PathVariable String id, @RequestParam double desconto,
+            RedirectAttributes redirectAttributes) {
+
+        pedidoService.aplicarDesconto(id, desconto);
+        redirectAttributes.addFlashAttribute("sucesso", "Desconto aplicado.");
+
+        return "redirect:/pedidos";
+    }
+
+    @PostMapping("/pedidos/{id}/cancelar")
+    @PreAuthorize("hasRole('GERENTE')")
+    public String cancelarPedido(@PathVariable String id, @RequestParam String justificativa,
+            RedirectAttributes redirectAttributes) {
+        pedidoService.cancelar(id, justificativa);
+        redirectAttributes.addFlashAttribute("sucesso", "Pedido cancelado.");
+
+        return "redirect:/pedidos";
+    }
+
     // ========================
     // PRODUTOS
     // ========================
@@ -169,6 +204,23 @@ public class HomeController {
         model.addAttribute("content", "produtos/lista :: content");
         log.info("Carregando fragmento: produtos/lista :: content");
         return "layout";
+    }
+
+    @PostMapping("/produtos/salvar")
+    public String salvarProduto(@ModelAttribute Produto produto, RedirectAttributes redirectAttributes) {
+        if (produto.getId() != null && produto.getId().isBlank()) {
+            produto.setId(null);
+        }
+        produtoService.salvar(produto);
+        redirectAttributes.addFlashAttribute("sucesso", "Produto salvo.");
+        return "redirect:/produtos";
+    }
+
+    @PostMapping("/produtos/excluir/{id}")
+    public String excluirProduto(@PathVariable String id, RedirectAttributes redirectAttributes) {
+        produtoService.excluir(id);
+        redirectAttributes.addFlashAttribute("sucesso", "Produto excluído.");
+        return "redirect:/produtos";
     }
 
     // ========================
@@ -223,6 +275,17 @@ public class HomeController {
         clienteService.salvar(cliente);
         redirectAttributes.addFlashAttribute("sucesso", "Cliente atualizado com sucesso!");
         return "redirect:/clientes";
+    }
+
+    // ========================
+    // AUDITORIA
+    // ========================
+    @GetMapping("/auditoria")
+    @PreAuthorize("hasAnyRole('ADMIN','GERENTE')")
+    public String auditoria(Model model) {
+        model.addAttribute("registros", auditoriaService.listar());
+        model.addAttribute("content", "auditoria :: content");
+        return "layout";
     }
 
     // ========================

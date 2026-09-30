@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity">
     <head>
         <meta charset="UTF-8">
         <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
@@ -56,7 +57,14 @@
                                 </a>
                             </li>
                     </li>
+                    
                 </ul>
+                </li>
+                <li class="nav-item" sec:authorize="hasAnyRole('ADMIN','GERENTE')">
+                    <a class="nav-link" th:href="@{/auditoria}">
+                        <i class="bi bi-journal-text"></i>
+                        <span class="d-none d-md-inline">&nbsp;Auditoria</span>
+                    </a>
                 </li>
                 </ul>
             </div>

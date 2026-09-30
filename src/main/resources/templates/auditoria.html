@@ -1,0 +1,32 @@
+<div th:fragment="content">
+    <h2 class="fw-bold mb-4">Auditoria</h2>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th class="ps-4">Usuário</th>
+                        <th>Operação</th>
+                        <th>Campo</th>
+                        <th>Valor anterior</th>
+                        <th>Valor novo</th>
+                        <th>Data e hora</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${#lists.isEmpty(registros)}">
+                        <td colspan="6" class="text-center text-muted py-5">Nenhum registro.</td>
+                    </tr>
+                    <tr th:each="registro : ${registros}">
+                        <td class="ps-4" th:text="${registro.usuario}"></td>
+                        <td th:text="${registro.operacao}"></td>
+                        <td th:text="${registro.campo}"></td>
+                        <td th:text="${registro.valorAnterior}"></td>
+                        <td th:text="${registro.valorNovo}"></td>
+                        <td th:text="${registro.dataHora}"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

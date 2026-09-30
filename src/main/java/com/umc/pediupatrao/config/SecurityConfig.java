@@ -63,9 +63,9 @@ public class SecurityConfig {
                         .hasAnyRole("ADMIN", "GERENTE", "ATENDENTE")
                         .requestMatchers("/pedidos/**", "/api/pedidos/**").hasAnyRole("GERENTE", "ATENDENTE")
                         .requestMatchers(HttpMethod.GET, "/clientes/**", "/api/clientes/**")
-                        .hasAnyRole("GERENTE", "ATENDENTE")
-                        .requestMatchers(HttpMethod.POST, "/clientes/**", "/api/clientes/**").hasRole("ATENDENTE")
-                        .requestMatchers(HttpMethod.PUT, "/api/clientes/**").hasRole("ATENDENTE")
+                        .hasAnyRole("GERENTE", "ATENDENTE","ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/clientes/**", "/api/clientes/**").hasAnyRole("ATENDENTE","ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/clientes/**").hasAnyRole("ATENDENTE","ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/clientes/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.accessDeniedHandler((request, response, denied) -> {

@@ -25,6 +25,9 @@ public class Pedido {
     private double valorTotal;
     private String responsavelEntrada;
     private LocalDateTime dataEntrada;
+    private String responsavelSaida;
+    private LocalDateTime dataSaida;
+    private String justificativaCancelamento;
 
     public String getId() {
         return id;
@@ -128,6 +131,30 @@ public class Pedido {
 
     public void setDataEntrada(LocalDateTime dataEntrada) {
         this.dataEntrada = dataEntrada;
+    }
+
+    public String getResponsavelSaida() {
+        return responsavelSaida;
+    }
+
+    public void setResponsavelSaida(String responsavelSaida) {
+        this.responsavelSaida = responsavelSaida;
+    }
+
+    public LocalDateTime getDataSaida() {
+        return dataSaida;
+    }
+
+    public void setDataSaida(LocalDateTime dataSaida) {
+        this.dataSaida = dataSaida;
+    }
+
+    public String getJustificativaCancelamento() {
+        return justificativaCancelamento;
+    }
+
+    public void setJustificativaCancelamento(String justificativaCancelamento) {
+        this.justificativaCancelamento = justificativaCancelamento;
     }
 
 }

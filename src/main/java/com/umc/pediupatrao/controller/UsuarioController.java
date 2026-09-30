@@ -50,7 +50,7 @@ public class UsuarioController {
             Usuario usuario = usuarioExistente.get();
             usuario.setUsername(usuarioAtualizado.getUsername());
             usuario.setPassword(usuarioAtualizado.getPassword());
-            usuarioService.salvarUsuario(usuario);
+            usuarioService.atualizarUsuario(id, usuarioAtualizado);
 
             return ResponseEntity.ok(usuario);
         } else {
