@@ -66,6 +66,14 @@
                         <span class="d-none d-md-inline">&nbsp;Auditoria</span>
                     </a>
                 </li>
+                <li class="nav-item mt-2 border-top border-secondary">
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="nav-link border-0 bg-transparent w-100 text-start">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span class="d-none d-md-inline">&nbsp;Sair</span>
+                        </button>
+                    </form>
+                </li>
                 </ul>
             </div>
         </div>

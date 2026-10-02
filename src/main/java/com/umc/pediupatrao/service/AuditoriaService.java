@@ -21,9 +21,8 @@ public class AuditoriaService {
         this.auditoriaRepository = auditoriaRepository;
     }
 
-    public void registrar(String operacao, String entidade, String entidadeId,
-            String campo, String valorAnterior, String valorNovo,
-            String justificativa) {
+    public void registrar(String operacao,
+            String campo, String valorAnterior, String valorNovo) {
 
         Authentication autenticado = SecurityContextHolder.getContext().getAuthentication();
 

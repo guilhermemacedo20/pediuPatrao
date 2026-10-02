@@ -13,6 +13,9 @@ public class ClienteService {
     @Autowired
     private ClienteRepository clienteRepository;
 
+    @Autowired
+    private AuditoriaService auditoriaService;
+
     public Cliente novoCliente(Cliente cliente) {
         return clienteRepository.save(cliente);
     }
@@ -23,6 +26,8 @@ public class ClienteService {
 
     // Método para excluir cliente
     public void excluir(String id) {
+        auditoriaService.registrar("EXCLUSÃO DE CLIENTE",
+                        "exclusão", id, "");
         clienteRepository.deleteById(id);
     }
 
@@ -34,16 +39,31 @@ public class ClienteService {
     public Cliente salvar(Cliente cliente) {
         // Se o cliente não tem ID (novo cliente), salva como novo
         if (cliente.getId() == null) {
-            return clienteRepository.save(cliente);  // Cria um novo cliente
+            Cliente novoCliente = clienteRepository.save(cliente);
+            auditoriaService.registrar("INCLUSÃO DE CLIENTE",
+                    "cliente", null, novoCliente.getNome());
+            return novoCliente;
         } // Se já tem ID (cliente existente), atualiza
         else {
             // Verifica se o cliente existe antes de atualizar
-            if (clienteRepository.existsById(cliente.getId())) {
-                return clienteRepository.save(cliente);  // Atualiza o cliente existente
-            } else {
-                throw new IllegalArgumentException("Cliente não encontrado para atualização.");
+            Cliente anterior = clienteRepository.findById(cliente.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Cliente não encontrado para atualização."));
+
+            Cliente atualizado = clienteRepository.save(cliente); // Atualiza o cliente existente
+
+            if (!java.util.Objects.equals(anterior.getTelefone(), atualizado.getTelefone())) {
+                auditoriaService.registrar("ALTERAÇÃO DE CLIENTE",
+                        "telefone", anterior.getTelefone(), atualizado.getTelefone());
             }
+            if (!java.util.Objects.equals(anterior.getLogradouro(), atualizado.getLogradouro())) {
+                auditoriaService.registrar("ALTERAÇÃO DE CLIENTE",
+                        "logradouro", anterior.getLogradouro(), atualizado.getLogradouro());
+            }
+
+            return atualizado; 
+
         }
+
     }
 
 }

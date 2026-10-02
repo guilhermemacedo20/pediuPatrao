@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/springsecurity">
 <head>
     <title>Lista de Pedidos</title>
 </head>
@@ -101,16 +102,27 @@
                                 <button type="submit" class="btn btn-sm btn-success">Finalizar</button>
                             </form>
 
-                            <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'PRONTO'}"
-                                th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post" class="d-inline">
-                                <input type="number" name="desconto" min="0.01" max="20" step="0.01" required/>
-                                <button type="submit" class="btn btn-sm btn-success">Desconto</button>
-                            </form>
-                            <form th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'PRONTO'}"
-                                th:action="@{/pedidos/{id}/cancelar(id=${pedido.id})}" method="post" class="d-inline">
-                                <input type="text" name="justificativa" placeholder="Justificativa" required/>
-                                <button type="submit" class="btn btn-sm btn-danger">Cancelar</button>
-                            </form>
+                            <div sec:authorize="hasRole('GERENTE')"
+                                 th:if="${pedido.status == 'RECEBIDO' or pedido.status == 'EM_PREPARACAO' or pedido.status == 'PRONTO'}"
+                                 class="d-flex flex-column gap-2 mt-2" style="min-width: 220px;">
+                                <form th:action="@{/pedidos/{id}/desconto(id=${pedido.id})}" method="post"
+                                      class="d-flex gap-1">
+                                    <input type="number" name="desconto" min="0.01" max="20" step="0.01"
+                                           class="form-control form-control-sm" placeholder="%" required
+                                           style="width: 72px;"/>
+                                    <button type="submit" class="btn btn-sm btn-success text-nowrap">
+                                        <i class="bi bi-percent"></i> Desconto
+                                    </button>
+                                </form>
+                                <form th:action="@{/pedidos/{id}/cancelar(id=${pedido.id})}" method="post"
+                                      class="d-flex gap-1">
+                                    <input type="text" name="justificativa" placeholder="Justificativa"
+                                           class="form-control form-control-sm" required/>
+                                    <button type="submit" class="btn btn-sm btn-outline-danger text-nowrap">
+                                        <i class="bi bi-x-circle"></i> Cancelar
+                                    </button>
+                                </form>
+                            </div>
                             <small class="d-block" th:if="${pedido.status == 'CANCELADO'}"
                                 th:text="${pedido.justificativaCancelamento}"></small>
                         </td>

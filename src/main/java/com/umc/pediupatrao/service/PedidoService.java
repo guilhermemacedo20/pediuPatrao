@@ -25,6 +25,9 @@ public class PedidoService {
     @Autowired
     private ProdutoRepository produtoRepository;
 
+    @Autowired
+    private AuditoriaService auditoriaService;
+
     private Pedido buscar(String id) {
         return pedidoRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Pedido não encontrado"));
     }
@@ -65,7 +68,11 @@ public class PedidoService {
         pedido.setSubtotal(subtotal);
         pedido.setValorTotal(subtotal - pedido.getValorDesconto());
         pedido.setStatus(StatusPedido.RECEBIDO);
-        return pedidoRepository.save(pedido);
+
+        Pedido salvo = pedidoRepository.save(pedido);
+        auditoriaService.registrar("CRIAÇÃO DE PEDIDO", "status", null, salvo.getStatus());
+
+        return salvo;
     }
 
     public List<Pedido> listarPedidos() {
@@ -75,6 +82,8 @@ public class PedidoService {
     public Pedido atualizarStatus(String id, String novoStatus) {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido não encontrado"));
+
+        String statusAnterior = pedido.getStatus();
         if (StatusPedido.CANCELADO.equals(pedido.getStatus())) {
             throw new IllegalArgumentException("Pedido cancelado não pode ser alterado.");
         }
@@ -82,6 +91,10 @@ public class PedidoService {
             throw new IllegalArgumentException("Transição inválida: " + pedido.getStatus() + " para " + novoStatus);
         }
         pedido.setStatus(novoStatus);
+
+        auditoriaService.registrar("ALTERAÇÃO DE PEDIDO",
+                "Status do pedido", statusAnterior, pedido.getStatus());
+
         if (StatusPedido.SAIU_PARA_ENTREGA.equals(novoStatus) || StatusPedido.RETIRADO.equals(novoStatus)) {
             pedido.setDataSaida(LocalDateTime.now());
             pedido.setResponsavelSaida(
@@ -96,14 +109,21 @@ public class PedidoService {
             throw new IllegalArgumentException("Desconto permitido de 0,01% a 20%.");
         }
         Pedido pedido = buscar(id);
+        String totalAnterior = String.valueOf(pedido.getValorTotal());
+
         if (!StatusPedido.antesDaSaida(pedido.getStatus())) {
             throw new IllegalArgumentException("Desconto só antes da saída ou retirada.");
         }
+
         double valorDesconto = pedido.getSubtotal() * percentual / 100.0;
         pedido.setPercentualDesconto(percentual);
         pedido.setValorDesconto(valorDesconto);
         pedido.setValorTotal(pedido.getSubtotal() - valorDesconto);
         Pedido salvo = pedidoRepository.save(pedido);
+
+        auditoriaService.registrar("APLICAÇÃO DE DESCONTO", "valorTotal",
+                totalAnterior, String.valueOf(salvo.getValorTotal()));
+
         return salvo;
     }
 
@@ -113,11 +133,16 @@ public class PedidoService {
             throw new IllegalArgumentException("Cancelamento exige justificativa.");
         }
         Pedido pedido = buscar(id);
+        String statusAnterior = pedido.getStatus();
         if (!StatusPedido.antesDaSaida(pedido.getStatus())) {
             throw new IllegalArgumentException("Não é possível cancelar depois da saída ou retirada.");
         }
         pedido.setStatus(StatusPedido.CANCELADO);
         pedido.setJustificativaCancelamento(justificativa);
+
+        auditoriaService.registrar("CANCELAMENTO DE PEDIDO", "status",
+                statusAnterior, "CANCELADO. Justificativa: " + justificativa);
+                
         Pedido salvo = pedidoRepository.save(pedido);
         return salvo;
     }
