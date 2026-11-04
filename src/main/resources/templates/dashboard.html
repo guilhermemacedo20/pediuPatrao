@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard</title>
+</head>
+<body>
+
+<div th:fragment="content">
+    <link rel="stylesheet" th:href="@{/plugins/fontawesome-free/css/all.min.css}">
+    <link rel="stylesheet" th:href="@{/dist/css/alt/adminlte.extra-components.min.css}">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard</h2>
+            <small class="text-muted" id="periodo">Carregando...</small>
+        </div>
+        <small class="text-muted" id="atualizacao"></small>
+    </div>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <form id="filtros" class="row g-2 align-items-end">
+                <div class="col-sm-6 col-md-3">
+                    <label for="dataInicio" class="form-label">Data inicial</label>
+                    <input type="date" id="dataInicio" class="form-control">
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <label for="dataFim" class="form-label">Data final</label>
+                    <input type="date" id="dataFim" class="form-control">
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select id="status" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="RECEBIDO">Recebido</option>
+                        <option value="EM_PREPARACAO">Em preparação</option>
+                        <option value="PRONTO">Pronto</option>
+                        <option value="SAIU_PARA_ENTREGA">Saiu para entrega</option>
+                        <option value="RETIRADO">Retirado</option>
+                        <option value="FINALIZADO">Finalizado</option>
+                        <option value="CANCELADO">Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <button type="submit" id="filtrar" class="btn btn-primary"><i class="bi bi-funnel"></i> Filtrar</button>
+                    <button type="button" id="limpar" class="btn btn-outline-secondary">Limpar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="erro" class="alert alert-danger d-none"></div>
+
+    <div class="row">
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-success text-white">
+                <div class="inner"><h3 id="faturamento">—</h3><p>Faturamento</p></div>
+                <div class="icon"><i class="fas fa-dollar-sign"></i></div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-primary text-white">
+                <div class="inner"><h3 id="totalPedidos">—</h3><p>Pedidos (<span id="itensVendidos">0</span> itens vendidos)</p></div>
+                <div class="icon"><i class="fas fa-shopping-cart"></i></div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+                <div class="inner"><h3 id="ticketMedio">—</h3><p>Ticket médio</p></div>
+                <div class="icon"><i class="fas fa-receipt"></i></div>
+            </div>
+        </div>
+        <div class="col-lg-3 col-6">
+            <div class="small-box bg-danger text-white">
+                <div class="inner"><h3 id="cancelados">—</h3><p>Cancelados (<span id="taxaCancelamento">0</span>%)</p></div>
+                <div class="icon"><i class="fas fa-ban"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white"><h5 class="mb-0"><i class="fas fa-chart-bar me-1"></i> Faturamento por dia</h5></div>
+                <div class="card-body"><div style="height:300px"><canvas id="graficoVendas"></canvas></div></div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white"><h5 class="mb-0"><i class="fas fa-tasks me-1"></i> Pedidos por status</h5></div>
+                <div class="card-body"><div style="height:300px"><canvas id="graficoStatus"></canvas></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white"><h5 class="mb-0"><i class="fas fa-trophy me-1"></i> Produtos mais vendidos</h5></div>
+        <div class="card-body p-0">
+            <table class="table table-striped align-middle mb-0">
+                <thead><tr><th class="ps-3" style="width:50px">#</th><th>Produto</th><th class="text-end">Quantidade</th><th class="text-end">Faturamento</th><th style="width:30%"></th></tr></thead>
+                <tbody id="produtos"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script th:src="@{/plugins/chart.js/Chart.min.js}"></script>
+    <script>
+        const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+        const nomesStatus = {
+            RECEBIDO: 'Recebido', EM_PREPARACAO: 'Em preparação', PRONTO: 'Pronto', SAIU_PARA_ENTREGA: 'Saiu para entrega',
+            RETIRADO: 'Retirado', FINALIZADO: 'Finalizado', CANCELADO: 'Cancelado', SEM_STATUS: 'Sem status'
+        };
+        const coresStatus = ['#17a2b8', '#ffc107', '#6f42c1', '#007bff', '#20c997', '#28a745', '#dc3545', '#6c757d'];
+        let graficoVendas = null;
+        let graficoStatus = null;
+
+        function filtros() {
+            const params = new URLSearchParams();
+            ['dataInicio', 'dataFim', 'status'].forEach(id => {
+                const valor = document.getElementById(id).value;
+                if (valor) params.append(id, valor);
+            });
+            return params;
+        }
+
+        async function buscar(endpoint, extras) {
+            const params = filtros();
+            Object.entries(extras || {}).forEach(([k, v]) => params.append(k, v));
+            const resposta = await fetch('/api/dashboard/' + endpoint + '?' + params, { headers: { Accept: 'application/json' } });
+            if (resposta.redirected) throw new Error('Sua sessão expirou. Faça login novamente.');
+            if (resposta.status === 403) throw new Error('Seu perfil não tem acesso ao dashboard.');
+            const corpo = await resposta.json().catch(() => null);
+            if (!resposta.ok) throw new Error(corpo && corpo.erro ? corpo.erro : 'Erro ' + resposta.status + ' ao consultar a API.');
+            return corpo;
+        }
+
+        function dataBr(iso) {
+            const [a, m, d] = iso.split('-');
+            return d + '/' + m + '/' + a;
+        }
+
+        function mostrarResumo(r) {
+            document.getElementById('faturamento').textContent = moeda.format(r.faturamento);
+            document.getElementById('totalPedidos').textContent = r.totalPedidos;
+            document.getElementById('itensVendidos').textContent = r.itensVendidos;
+            document.getElementById('ticketMedio').textContent = moeda.format(r.ticketMedio);
+            document.getElementById('cancelados').textContent = r.pedidosCancelados;
+            document.getElementById('taxaCancelamento').textContent = r.taxaCancelamento.toLocaleString('pt-BR');
+            document.getElementById('periodo').textContent = 'Período: ' + dataBr(r.dataInicio) + ' a ' + dataBr(r.dataFim);
+            document.getElementById('dataInicio').value = r.dataInicio;
+            document.getElementById('dataFim').value = r.dataFim;
+        }
+
+        function mostrarVendas(vendas) {
+            if (graficoVendas) graficoVendas.destroy();
+            graficoVendas = new Chart(document.getElementById('graficoVendas'), {
+                type: 'bar',
+                data: {
+                    labels: vendas.map(v => dataBr(v.data).substring(0, 5)),
+                    datasets: [{ label: 'Faturamento', data: vendas.map(v => v.faturamento), backgroundColor: '#007bff' }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    legend: { display: false },
+                    scales: { yAxes: [{ ticks: { beginAtZero: true, callback: v => moeda.format(v) } }] },
+                    tooltips: {
+                        callbacks: {
+                            label: item => 'Faturamento: ' + moeda.format(item.yLabel),
+                            afterLabel: item => 'Pedidos: ' + vendas[item.index].pedidos
+                        }
+                    }
+                }
+            });
+        }
+
+        function mostrarStatus(lista) {
+            const comPedidos = lista.filter(s => s.quantidade > 0);
+            if (graficoStatus) graficoStatus.destroy();
+            graficoStatus = new Chart(document.getElementById('graficoStatus'), {
+                type: 'doughnut',
+                data: {
+                    labels: comPedidos.map(s => nomesStatus[s.status] + ' (' + s.quantidade + ')'),
+                    datasets: [{ data: comPedidos.map(s => s.quantidade), backgroundColor: comPedidos.map(s => coresStatus[Object.keys(nomesStatus).indexOf(s.status)]) }]
+                },
+                options: { maintainAspectRatio: false, legend: { position: 'bottom' } }
+            });
+        }
+
+        function mostrarProdutos(produtos) {
+            const corpo = document.getElementById('produtos');
+            if (produtos.length === 0) {
+                corpo.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Nenhum produto vendido no período.</td></tr>';
+                return;
+            }
+            const maior = produtos[0].quantidade;
+            corpo.innerHTML = '';
+            produtos.forEach((p, i) => {
+                const linha = corpo.insertRow();
+                linha.insertCell().outerHTML = '<td class="ps-3">' + (i + 1) + 'º</td>';
+                linha.insertCell().textContent = p.produto;
+                linha.insertCell().outerHTML = '<td class="text-end">' + p.quantidade + '</td>';
+                linha.insertCell().outerHTML = '<td class="text-end">' + moeda.format(p.faturamento) + '</td>';
+                linha.insertCell().innerHTML = '<div class="progress" style="height:6px"><div class="progress-bar" style="width:'
+                    + Math.round(p.quantidade * 100 / maior) + '%"></div></div>';
+            });
+        }
+
+        async function carregar() {
+            const erro = document.getElementById('erro');
+            const botao = document.getElementById('filtrar');
+            const inicio = document.getElementById('dataInicio').value;
+            const fim = document.getElementById('dataFim').value;
+            if (inicio && fim && inicio > fim) {
+                erro.textContent = 'A data inicial não pode ser maior que a data final.';
+                erro.classList.remove('d-none');
+                return;
+            }
+            erro.classList.add('d-none');
+            botao.disabled = true;
+            botao.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Carregando...';
+            try {
+                const [resumo, vendas, status, produtos] = await Promise.all([
+                    buscar('resumo'),
+                    buscar('vendas-por-dia'),
+                    buscar('pedidos-por-status'),
+                    buscar('produtos-mais-vendidos', { limite: 10 })
+                ]);
+                mostrarResumo(resumo);
+                mostrarVendas(vendas);
+                mostrarStatus(status);
+                mostrarProdutos(produtos);
+                document.getElementById('atualizacao').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+            } catch (e) {
+                erro.textContent = e.message;
+                erro.classList.remove('d-none');
+            } finally {
+                botao.disabled = false;
+                botao.innerHTML = '<i class="bi bi-funnel"></i> Filtrar';
+            }
+        }
+
+        document.getElementById('filtros').addEventListener('submit', e => { e.preventDefault(); carregar(); });
+        document.getElementById('limpar').addEventListener('click', () => {
+            document.getElementById('filtros').reset();
+            carregar();
+        });
+        carregar();
+    </script>
+</div>
+
+</body>
+</html>
